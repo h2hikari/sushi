@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🍣 초밥 네타 퀴즈 (이미지 버전)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Noto+Sans+JP:wght@400;700&display=swap');
+  :root {
+    --red:#C8003A; --pink:#F2708A; --cream:#FDF6F0; --sand:#F5E6D8;
+    --navy:#1A3557; --teal:#1B8A7A; --gold:#F5A623; --white:#FFFFFF; --dark:#2D1F1F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+  body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(circle at 20% 20%,rgba(242,112,138,.08) 0%,transparent 50%),
+               radial-gradient(circle at 80% 80%,rgba(27,138,122,.08) 0%,transparent 50%);}
+  .wrap{position:relative;z-index:1;width:100%;max-width:480px;padding:0 16px 40px;}
+
+  header{text-align:center;padding:24px 0 14px;}
+  .emoji-row{font-size:26px;letter-spacing:5px;margin-bottom:6px;animation:float 3s ease-in-out infinite;}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  header h1{font-size:26px;font-weight:900;color:var(--red);}
+  header p{font-size:12px;color:#888;margin-top:4px;}
+
+  /* 모드 선택 */
+  .mode-card{background:var(--white);border-radius:24px;padding:28px 20px;box-shadow:0 4px 24px rgba(45,31,31,.08);text-align:center;animation:slideIn .4s cubic-bezier(.34,1.56,.64,1);}
+  .mode-card h2{font-size:17px;font-weight:900;color:var(--dark);margin-bottom:5px;}
+  .mode-card p{font-size:12px;color:#999;margin-bottom:20px;}
+  .mode-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .mode-btn{padding:20px 10px;border-radius:16px;border:2.5px solid;cursor:pointer;transition:all .2s;background:var(--cream);display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .mode-btn .m-emoji{font-size:32px;}
+  .mode-btn .m-title{font-size:15px;font-weight:900;}
+  .mode-btn .m-sub{font-size:11px;color:#aaa;}
+  .mode-btn .m-grade{font-size:11px;font-weight:700;}
+  .mode-btn.jp-btn{border-color:var(--red);}
+  .mode-btn.jp-btn .m-title{color:var(--red);}
+  .mode-btn.jp-btn .m-grade{color:var(--red);}
+  .mode-btn.jp-btn:hover{background:#FFF0F3;transform:translateY(-2px);}
+  .mode-btn.kr-btn{border-color:var(--teal);}
+  .mode-btn.kr-btn .m-title{color:var(--teal);}
+  .mode-btn.kr-btn .m-grade{color:var(--teal);}
+  .mode-btn.kr-btn:hover{background:#EBF7F5;transform:translateY(-2px);}
+
+  /* 퀴즈 */
+  .progress-wrap{background:#EDD8CE;border-radius:20px;height:8px;margin:12px 0 5px;overflow:hidden;}
+  .progress-bar{height:100%;background:linear-gradient(90deg,var(--red),var(--pink));border-radius:20px;transition:width .4s ease;}
+  .progress-label{font-size:11px;color:#aaa;text-align:right;margin-bottom:12px;}
+  .timer-wrap{display:flex;justify-content:center;margin-bottom:14px;}
+  .timer-circle{width:48px;height:48px;border-radius:50%;background:var(--white);box-shadow:0 2px 12px rgba(200,0,58,.15);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:var(--red);transition:all .3s;}
+  .timer-circle.urgent{background:var(--red);color:var(--white);animation:pulse .5s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+  .mode-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;margin-bottom:12px;}
+  .mode-chip.jp{background:#FFE5EA;color:var(--red);}
+  .mode-chip.kr{background:#D4F0EB;color:var(--teal);}
+
+  /* 이미지 카드 */
+  .card{background:var(--white);border-radius:24px;padding:20px 20px 16px;box-shadow:0 4px 24px rgba(45,31,31,.08);margin-bottom:14px;animation:slideIn .35s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes slideIn{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+  .sushi-img-wrap{text-align:center;margin-bottom:14px;}
+  .sushi-img{width:160px;height:140px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12));transition:transform .3s;}
+  .sushi-img:hover{transform:scale(1.04) rotate(-2deg);}
+  .question-label{font-size:11px;color:#ccc;font-weight:700;letter-spacing:2px;text-align:center;margin-bottom:4px;}
+  .sushi-name-kr{font-size:22px;font-weight:900;color:var(--dark);text-align:center;}
+
+  /* 보기 버튼 */
+  .choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;}
+  .choice-btn{padding:16px 8px;border:2px solid #EDD8CE;border-radius:14px;background:var(--cream);font-size:20px;font-weight:700;color:var(--dark);cursor:pointer;transition:all .18s ease;text-align:center;font-family:'Noto Sans JP','Noto Sans KR',sans-serif;line-height:1.2;}
+  .choice-btn .choice-sub{display:block;font-size:11px;color:#bbb;font-family:'Noto Sans KR',sans-serif;font-weight:400;margin-top:3px;}
+  .choice-btn:hover:not(:disabled){border-color:var(--pink);background:#FFF0F3;transform:translateY(-2px);box-shadow:0 4px 12px rgba(242,112,138,.2);}
+  .choice-btn.correct{background:#D4F0EB;border-color:var(--teal);color:var(--teal);}
+  .choice-btn.correct .choice-sub{color:var(--teal);}
+  .choice-btn.wrong{background:#FFE5EA;border-color:var(--red);color:var(--red);}
+  .choice-btn:disabled{cursor:default;}
+
+  .feedback{text-align:center;font-size:14px;font-weight:700;padding:10px;border-radius:10px;margin-top:10px;min-height:42px;display:flex;align-items:center;justify-content:center;}
+  .feedback.correct{background:#D4F0EB;color:var(--teal);}
+  .feedback.wrong{background:#FFE5EA;color:var(--red);}
+  .feedback.hidden{visibility:hidden;}
+
+  .next-btn{width:100%;padding:15px;border:none;border-radius:14px;background:linear-gradient(135deg,var(--red),var(--pink));color:var(--white);font-family:'Noto Sans KR',sans-serif;font-size:15px;font-weight:900;cursor:pointer;margin-top:10px;box-shadow:0 4px 16px rgba(200,0,58,.25);letter-spacing:1px;transition:all .2s;}
+  .next-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(200,0,58,.35);}
+
+  /* 결과 */
+  .result-card{background:var(--white);border-radius:24px;padding:32px 20px;box-shadow:0 4px 24px rgba(45,31,31,.08);text-align:center;animation:slideIn .4s cubic-bezier(.34,1.56,.64,1);}
+  .result-emoji{font-size:68px;display:block;margin-bottom:10px;animation:bounce .6s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes bounce{from{transform:scale(0)}to{transform:scale(1)}}
+  .result-score{font-size:50px;font-weight:900;color:var(--red);margin-bottom:5px;}
+  .result-score span{font-size:20px;color:#aaa;font-weight:400;}
+  .result-msg{font-size:17px;font-weight:700;color:var(--dark);margin:8px 0 4px;}
+  .result-sub{font-size:13px;color:#999;margin-bottom:20px;}
+  .snack-banner{border:2px solid;border-radius:16px;padding:14px;margin-bottom:18px;}
+  .snack-banner .icon{font-size:26px;display:block;margin-bottom:4px;}
+  .snack-banner .text{font-size:15px;font-weight:900;}
+  .snack-banner .sub{font-size:11px;margin-top:2px;}
+  .review-list{text-align:left;background:var(--cream);border-radius:14px;padding:14px;margin-bottom:18px;}
+  .review-list h3{font-size:11px;color:#aaa;font-weight:700;letter-spacing:1px;margin-bottom:8px;}
+  .review-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #EDD8CE;font-size:13px;}
+  .review-item:last-child{border-bottom:none;}
+  .review-item img{width:32px;height:28px;object-fit:contain;}
+  .review-item .kr{color:var(--dark);font-weight:700;flex:1;}
+  .review-item .jp{font-family:'Noto Sans JP',sans-serif;color:var(--red);font-weight:700;font-size:13px;}
+  .review-item .ri{font-size:15px;}
+  .bottom-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .retry-btn,.change-btn{padding:14px 8px;border-radius:14px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:900;cursor:pointer;transition:all .2s;}
+  .retry-btn{border:2.5px solid var(--red);background:transparent;color:var(--red);}
+  .retry-btn:hover{background:var(--red);color:var(--white);}
+  .change-btn{border:2.5px solid var(--navy);background:transparent;color:var(--navy);}
+  .change-btn:hover{background:var(--navy);color:var(--white);}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 모드 선택 -->
+  <div id="mode-screen">
+    <header>
+      <div class="emoji-row">🍣 🍱 🍤</div>
+      <h1>초밥 네타 퀴즈</h1>
+      <p>버전을 선택해주세요!</p>
+    </header>
+    <div class="mode-card">
+      <h2>어떤 버전으로 할까요?</h2>
+      <p>일본어를 배웠는지 여부에 따라 선택해요</p>
+      <div class="mode-btns">
+        <button class="mode-btn jp-btn" onclick="startMode('jp')">
+          <span class="m-emoji">🇯🇵</span>
+          <span class="m-title">일본어 버전</span>
+          <span class="m-sub">보기: ひらがな・カタカナ</span>
+          <span class="m-grade">2학년용</span>
+        </button>
+        <button class="mode-btn kr-btn" onclick="startMode('kr')">
+          <span class="m-emoji">🇰🇷</span>
+          <span class="m-title">한글 버전</span>
+          <span class="m-sub">보기: 한글 발음</span>
+          <span class="m-grade">1학년용</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 퀴즈 -->
+  <div id="quiz-screen" class="hidden">
+    <header>
+      <div class="emoji-row">🍣 🍱 🍤</div>
+      <h1>초밥 네타 퀴즈</h1>
+      <p id="mode-desc"></p>
+    </header>
+    <div style="text-align:center"><span class="mode-chip" id="mode-chip"></span></div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+    <div class="progress-label" id="progress-label"></div>
+    <div class="timer-wrap"><div class="timer-circle" id="timer-circle"><span id="timer-num">15</span></div></div>
+
+    <div class="card" id="question-card">
+      <div class="sushi-img-wrap">
+        <img class="sushi-img" id="sushi-img" src="" alt="">
+      </div>
+      <div class="question-label" id="q-label">이 초밥은?</div>
+      <div class="sushi-name-kr" id="sushi-name-kr"></div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback hidden" id="feedback"></div>
+      <button class="next-btn hidden" id="next-btn">다음 문제 →</button>
+    </div>
+  </div>
+
+  <!-- 결과 -->
+  <div id="result-screen" class="hidden">
+    <header>
+      <div class="emoji-row">🎉 🍣 🎊</div>
+      <h1>결과 발표!</h1>
+    </header>
+    <div class="result-card">
+      <span class="result-emoji" id="result-emoji"></span>
+      <div class="result-score" id="result-score"></div>
+      <div class="result-msg" id="result-msg"></div>
+      <div class="result-sub" id="result-sub"></div>
+      <div class="snack-banner" id="snack-banner">
+        <span class="icon">🍬</span>
+        <div class="text" id="snack-text"></div>
+        <div class="sub" id="snack-sub"></div>
+      </div>
+      <div class="review-list">
+        <h3>📋 오늘의 결과</h3>
+        <div id="review-items"></div>
+      </div>
+      <div class="bottom-btns">
+        <button class="retry-btn" id="retry-btn">🔄 다시 도전</button>
+        <button class="change-btn" id="change-btn">🔀 버전 바꾸기</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const SUSHI = [
+  {kr:'참치',     jp:'まぐろ',   ro:'마구로',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjJBebp2jjzuxyNif2GEn6OIbgkfp55Jxl5LQPLBoGdltr8OCk2d6wiy2-pwsyB4BeqDUVEVewk1RHwLr9s0eciDIs68HkT2myDgPXae1l5_Wk-s4wsgG6kOAxiUatB-bRnpzo9g7foSJY/s400/sushi_akami.png'},
+  {kr:'연어',     jp:'サーモン', ro:'사몬',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgKRKK3eYjQixOcNW2lWwuL3sOHnyFkuzbGVMOY0z6kINYHkACKw_-p-CVhXRxJIR6axoBkNN2qJfoB7x30KFXNj6W3sQyjudFiapFZRuoS_SEUHcJRUnterb5hQpF1g0A-UXBz3L5DFNE/s400/sushi_salmon.png'},
+  {kr:'새우',     jp:'えび',     ro:'에비',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgXDOfU1cjZsqV2dnSO7JJ5FKMLOn8IngiZhbwKOlutpb6G1GNy8MKGs42DUgrsEf6eB2Ulrx5VMkFhAzeuW8kZc5h-d1RPaDLnrx4Nv80SNBIwOQcMUaSzbL5wPKwI4eZZmI4GxuZkBqc/s400/sushi_ebi.png'},
+  {kr:'계란',     jp:'たまご',   ro:'타마고',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgZ1zd_lINPUset0fUwDwkLynI5MhuikoWzdso9NwSOEJAm-6QY68R1xBhLHNkoPR1DWlHuUDlgKUWsF3Ytwuit07pZwAN6H5eLaH7TV7WKFl_5Nupzoe4lak0sxy5XG22lw3VAPeg88Eo/s400/sushi_tamago.png'},
+  {kr:'오징어',   jp:'いか',     ro:'이카',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg5Jjc6XGITcaxyECr576b6FgBRsOO1OIwQOr5z92XV61BWsP50lDOVrjiCvXNAX-Agr5OeWNIQzvjACXVGkP_u99T_EN4XCMum99GacSm-ma7Mwz8MoXOwnXJiSbhlBO5-i4zjQED7mXU/s400/sushi_ika.png'},
+  {kr:'문어',     jp:'たこ',     ro:'타코',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhEOB3al6VA1FuVtRogAV3_C4-bNCidMCKJc7rHsSGTIc7ejDu9LqxbwoPjbdPjGJc90wWeHbZ4DpmY-bW6McsTBIOrofZ4GDYOp0wgk5U6ZXPYk5Tfv5_ltrjbPXJVD4UQgZ56DgmNbllS/s400/sushi_tako.png'},
+  {kr:'성게알',   jp:'うに',     ro:'우니',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhpH_pkqxkNGA26TJk8BIUZhDscKa9kvsKf8rkRyYCotwp5D_XqtO-9q9aCn0_khvVnu1W0LAD3xjVB1kPegZjtL3WjseiuL_4uJcp_Dxtdf94c7ZYQf0flKotfNqPWoZJWGo4z-fKymuuf/s400/sushi_uni2.png'},
+  {kr:'연어알',   jp:'いくら',   ro:'이쿠라',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhFLiFKr6ZiKugus9v6eArARidy877tSJMex8KV_DjiJ4frWeXRX5azJqtNOVJt-VXEzWgV2twZUll1e78NbqlTKH5sKzhQ201Xupy7gu2wz8yQ_Y2J2lECYJmFHTUMbAX1dYlxa6NFjPQ/s400/sushi_ikura.png'},
+  {kr:'유부초밥', jp:'いなり',   ro:'이나리',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhAN27zX3P-hoqSiMN6YXoS4G6DVO6H6HHuZjEx_6w5c-yeB3T1ksrX9rPP1uE6OfStg3xLtS-VWQzq_YRh1D_4TL8GGbrrkJJ0oWFc8XtuQCCtNtfW7-v4ZrAbKiYkLqTAWOFmmlkIyDw/s400/inarizushi.png'},
+  {kr:'장어',     jp:'うなぎ',   ro:'우나기',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjt8jmDDCOvNoKwtbVqyM3ltyDmHlQi7o6cU91B-GMkRfNWl_prB9rqyroHxSe-xta2wg-IAeOzH21BPNDOAb45w6_5dbtTnVvoeri-Gw7vK-wlMPhpSi_3KyKW5JqN55ESgkUCXbjltT-j/s300/sushi_unagi.png'},
+];
+
+const TOTAL=4;
+let mode='jp', questions=[], current=0, score=0, answered=false;
+let timerInterval=null, timeLeft=15, results=[];
+
+const $=id=>document.getElementById(id);
+const shuffle=arr=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+
+function startMode(m){
+  mode=m;
+  $('mode-screen').classList.add('hidden');
+  initQuiz();
+}
+
+function initQuiz(){
+  questions=shuffle(SUSHI).slice(0,TOTAL);
+  current=0; score=0; results=[]; answered=false;
+  $('result-screen').classList.add('hidden');
+  $('quiz-screen').classList.remove('hidden');
+
+  const chip=$('mode-chip');
+  if(mode==='jp'){
+    chip.className='mode-chip jp'; chip.textContent='🇯🇵 일본어 버전 (2학년)';
+    $('mode-desc').textContent='일본어로 뭐라고 할까요?';
+    $('q-label').textContent='이 초밥은 일본어로?';
+  } else {
+    chip.className='mode-chip kr'; chip.textContent='🇰🇷 한글 버전 (1학년)';
+    $('mode-desc').textContent='한글 발음으로 뭐라고 할까요?';
+    $('q-label').textContent='이 초밥의 일본어 발음은?';
+  }
+  renderQuestion();
+}
+
+function renderQuestion(){
+  answered=false;
+  const q=questions[current];
+  const key=mode==='jp'?'jp':'ro';
+  const subKey=mode==='jp'?'ro':'jp';
+
+  $('progress-bar').style.width=(current/TOTAL*100)+'%';
+  $('progress-label').textContent=`${current+1} / ${TOTAL}`;
+
+  // 이미지 + 이름
+  const img=$('sushi-img');
+  img.src=q.img; img.alt=q.kr;
+  $('sushi-name-kr').textContent=q.kr;
+
+  // 보기 4개
+  const wrong=shuffle(SUSHI.filter(s=>s[key]!==q[key])).slice(0,3);
+  const opts=shuffle([q,...wrong]);
+  const el=$('choices'); el.innerHTML='';
+  opts.forEach(opt=>{
+    const btn=document.createElement('button');
+    btn.className='choice-btn';
+    btn.innerHTML=`${opt[key]}<span class="choice-sub">${opt[subKey]}</span>`;
+    btn.addEventListener('click',()=>checkAnswer(opt[key],q[key],q));
+    el.appendChild(btn);
+  });
+
+  const fb=$('feedback'); fb.className='feedback hidden'; fb.textContent='';
+  $('next-btn').classList.add('hidden');
+
+  // 카드 재애니메이션
+  const card=$('question-card');
+  card.style.animation='none'; card.offsetHeight; card.style.animation='';
+
+  startTimer();
+}
+
+function startTimer(){
+  clearInterval(timerInterval); timeLeft=15; updateTimer();
+  timerInterval=setInterval(()=>{timeLeft--;updateTimer();if(timeLeft<=0){clearInterval(timerInterval);timeOut();}},1000);
+}
+function updateTimer(){
+  $('timer-num').textContent=timeLeft;
+  $('timer-circle').classList.toggle('urgent',timeLeft<=5);
+}
+function timeOut(){
+  if(answered)return; answered=true;
+  const q=questions[current]; const key=mode==='jp'?'jp':'ro';
+  document.querySelectorAll('.choice-btn').forEach(btn=>{
+    btn.disabled=true;
+    if(btn.textContent.startsWith(q[key]))btn.classList.add('correct');
+  });
+  showFeedback(false,`⏰ 시간 초과! 정답: ${q[key]}`);
+  results.push({q,correct:false});
+  $('next-btn').classList.remove('hidden');
+}
+
+function checkAnswer(selected,correct,q){
+  if(answered)return; answered=true; clearInterval(timerInterval);
+  const isOk=selected===correct;
+  if(isOk)score++;
+  results.push({q,correct:isOk});
+  document.querySelectorAll('.choice-btn').forEach(btn=>{
+    btn.disabled=true;
+    const val=btn.querySelector('.choice-sub')?btn.childNodes[0].textContent.trim():btn.textContent;
+    if(val===correct)btn.classList.add('correct');
+    else if(val===selected&&!isOk)btn.classList.add('wrong');
+  });
+  if(isOk){
+    const hint=mode==='jp'?` (${q.ro})`:` (${q.jp})`;
+    showFeedback(true,`⭕ 정답!${hint}`);
+  } else {
+    showFeedback(false,`❌ 오답! 정답: ${correct}`);
+  }
+  $('next-btn').classList.remove('hidden');
+}
+
+function showFeedback(ok,msg){
+  const fb=$('feedback'); fb.className='feedback '+(ok?'correct':'wrong'); fb.textContent=msg;
+}
+
+$('next-btn').addEventListener('click',()=>{current++;if(current>=TOTAL)showResult();else renderQuestion();});
+
+function showResult(){
+  $('quiz-screen').classList.add('hidden');
+  $('result-screen').classList.remove('hidden');
+  const pct=score/TOTAL;
+  let emoji,msg,sub;
+  if(pct>=1){emoji='🏆';msg='완벽해요!';sub='초밥 네타 마스터!';}
+  else if(pct>=.75){emoji='🎉';msg='잘했어요!';sub='거의 다 맞혔어요!';}
+  else if(pct>=.5){emoji='😊';msg='괜찮아요!';sub='절반은 맞혔어요. 한 번 더!';}
+  else{emoji='😅';msg='더 공부해봐요!';sub='초밥 먹으면서 외워봐요 🍣';}
+  $('result-emoji').textContent=emoji;
+  $('result-score').innerHTML=`${score}<span> / ${TOTAL}</span>`;
+  $('result-msg').textContent=msg; $('result-sub').textContent=sub;
+
+  const banner=$('snack-banner'), st=$('snack-text'), ss=$('snack-sub');
+  if(score>=3){
+    banner.style.cssText='background:linear-gradient(135deg,#D4F0EB,#B2DDD8);border-color:#1B8A7A;';
+    st.style.color='#0A4F45'; ss.style.color='#1B8A7A';
+    st.textContent='🎊 과자 받으러 가세요!'; ss.textContent='선생님께 이 화면 보여주세요 ✅';
+  } else {
+    banner.style.cssText='background:linear-gradient(135deg,#FFE5EA,#FFCCD5);border-color:#C8003A;';
+    st.style.color='#7A0020'; ss.style.color='#C8003A';
+    st.textContent='😢 아쉽게도 과자는 3개 이상!'; ss.textContent='다시 도전해서 과자 받아가요!';
+  }
+
+  // 복습 목록
+  const ri=$('review-items'); ri.innerHTML='';
+  results.forEach(r=>{
+    const answer=mode==='jp'?r.q.jp:r.q.ro;
+    const also=mode==='jp'?r.q.ro:r.q.jp;
+    const div=document.createElement('div'); div.className='review-item';
+    div.innerHTML=`
+      <img src="${r.q.img}" alt="${r.q.kr}">
+      <span class="kr">${r.q.kr}</span>
+      <span class="jp">${answer} <small style="color:#bbb;font-size:10px">(${also})</small></span>
+      <span class="ri">${r.correct?'⭕':'❌'}</span>`;
+    ri.appendChild(div);
+  });
+  $('progress-bar').style.width='100%';
+}
+
+$('retry-btn').addEventListener('click',initQuiz);
+$('change-btn').addEventListener('click',()=>{
+  clearInterval(timerInterval);
+  $('result-screen').classList.add('hidden');
+  $('quiz-screen').classList.add('hidden');
+  $('mode-screen').classList.remove('hidden');
+});
+</script>
+</body>
+</html>
