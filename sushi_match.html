@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🍣 스시 매칭 게임</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Noto+Sans+JP:wght@700&family=Yomogi&display=swap');
+
+:root {
+  --red: #C8003A;
+  --pink: #F2708A;
+  --rose: #FFE5EA;
+  --cream: #FDF6F0;
+  --sand: #F5E2CE;
+  --navy: #1A3557;
+  --teal: #1B8A7A;
+  --mint: #D4F0EB;
+  --gold: #F0A500;
+  --white: #FFFFFF;
+  --dark: #2A1A1A;
+  --card-w: 100px;
+  --card-h: 110px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--cream);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+/* 배경 패턴 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 15%, rgba(242,112,138,.07) 0%, transparent 40%),
+    radial-gradient(circle at 85% 85%, rgba(27,138,122,.07) 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, rgba(240,165,0,.05) 0%, transparent 35%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 500px;
+  padding: 0 12px 40px;
+}
+
+/* 헤더 */
+header {
+  text-align: center;
+  padding: 24px 0 16px;
+}
+.header-deco {
+  font-size: 26px;
+  letter-spacing: 4px;
+  margin-bottom: 6px;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+header h1 {
+  font-family: 'Yomogi', cursive;
+  font-size: 26px;
+  color: var(--red);
+  letter-spacing: -0.5px;
+}
+header p {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 4px;
+}
+
+/* 상태 바 */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--white);
+  border-radius: 16px;
+  padding: 10px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(45,31,31,.07);
+}
+.stat {
+  text-align: center;
+}
+.stat-val {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--red);
+  line-height: 1;
+}
+.stat-label {
+  font-size: 10px;
+  color: #bbb;
+  margin-top: 2px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.stat-divider {
+  width: 1px;
+  height: 32px;
+  background: #eee;
+}
+
+/* 모드 선택 탭 */
+.mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  border: 2px solid #E8D8CC;
+  background: var(--white);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #bbb;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+}
+.mode-tab.active {
+  border-color: var(--red);
+  background: var(--rose);
+  color: var(--red);
+}
+.mode-tab:hover:not(.active) {
+  border-color: var(--pink);
+  color: var(--pink);
+}
+
+/* 카드 그리드 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* 카드 */
+.card {
+  aspect-ratio: 9/10;
+  perspective: 800px;
+  cursor: pointer;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 14px;
+}
+.card.flipped .card-inner,
+.card.matched .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* 앞면 (뒤집기 전) */
+.card-back {
+  background: linear-gradient(135deg, var(--red) 0%, #E8004A 100%);
+  box-shadow: 0 3px 12px rgba(200,0,58,.25);
+  flex-direction: column;
+  gap: 4px;
+}
+.card-back-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 6px,
+    rgba(255,255,255,.4) 6px,
+    rgba(255,255,255,.4) 7px
+  );
+}
+.card-back-icon {
+  font-size: 24px;
+  position: relative;
+  z-index: 1;
+}
+.card-back-text {
+  font-size: 9px;
+  color: rgba(255,255,255,.7);
+  font-weight: 700;
+  letter-spacing: 1px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 뒷면 (이미지 카드) */
+.card-front-img {
+  background: var(--white);
+  box-shadow: 0 3px 12px rgba(45,31,31,.1);
+  transform: rotateY(180deg);
+  flex-direction: column;
+  padding: 6px;
+  gap: 4px;
+}
+.card-front-img img {
+  width: 75%;
+  height: 70%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.card-kr-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--dark);
+  text-align: center;
+}
+
+/* 뒷면 (텍스트 카드) */
+.card-front-txt {
+  background: var(--white);
+  box-shadow: 0 3px 12px rgba(45,31,31,.1);
+  transform: rotateY(180deg);
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 4px;
+}
+.card-jp {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--red);
+  text-align: center;
+  line-height: 1.2;
+}
+.card-ro {
+  font-size: 11px;
+  color: #bbb;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* 매칭 성공 */
+.card.matched .card-front-img,
+.card.matched .card-front-txt {
+  background: linear-gradient(135deg, #D4F0EB, #B2DDD8);
+  box-shadow: 0 3px 16px rgba(27,138,122,.3);
+}
+.card.matched .card-jp { color: var(--teal); }
+.card.matched .card-kr-label { color: var(--teal); }
+
+/* 틀림 */
+.card.wrong .card-inner {
+  animation: shake 0.4s ease;
+}
+@keyframes shake {
+  0%,100%{transform:rotateY(180deg) translateX(0)}
+  25%{transform:rotateY(180deg) translateX(-5px)}
+  75%{transform:rotateY(180deg) translateX(5px)}
+}
+.card.wrong .card-front-img,
+.card.wrong .card-front-txt {
+  background: #FFE5EA;
+}
+
+/* 완료 오버레이 */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(42,26,26,.6);
+  backdrop-filter: blur(6px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+.overlay.show { display: flex; }
+
+.result-box {
+  background: var(--white);
+  border-radius: 28px;
+  padding: 40px 32px;
+  text-align: center;
+  max-width: 320px;
+  width: 90%;
+  animation: popIn .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+
+.result-emoji { font-size: 64px; display: block; margin-bottom: 12px; }
+.result-title { font-size: 26px; font-weight: 900; color: var(--red); margin-bottom: 6px; }
+.result-moves { font-size: 14px; color: #999; margin-bottom: 20px; }
+
+.snack-box {
+  background: linear-gradient(135deg, #D4F0EB, #B2DDD8);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.snack-box .s-icon { font-size: 28px; display: block; margin-bottom: 4px; }
+.snack-box .s-text { font-size: 16px; font-weight: 900; color: #0A4F45; }
+.snack-box .s-sub  { font-size: 12px; color: var(--teal); margin-top: 2px; }
+
+.play-again-btn {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--red), var(--pink));
+  color: var(--white);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(200,0,58,.3);
+  letter-spacing: .5px;
+  transition: all .2s;
+}
+.play-again-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(200,0,58,.4); }
+
+/* 리셋 버튼 */
+.reset-btn {
+  width: 100%;
+  padding: 13px;
+  border: 2px solid #E8D8CC;
+  border-radius: 14px;
+  background: transparent;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #bbb;
+  cursor: pointer;
+  transition: all .2s;
+}
+.reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* 타이머 바 */
+.timer-bar-wrap {
+  background: #EDD8CE;
+  border-radius: 20px;
+  height: 6px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal), var(--gold));
+  border-radius: 20px;
+  transition: width .5s linear, background .5s;
+  width: 100%;
+}
+.timer-bar.warn { background: linear-gradient(90deg, var(--gold), var(--red)); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-deco">🍣 🍱 🍤</div>
+    <h1>스시 매칭 게임</h1>
+    <p>같은 초밥끼리 짝을 맞춰보세요!</p>
+  </header>
+
+  <!-- 모드 탭 -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="setMode('jp')" id="tab-jp">🇯🇵 일본어 모드</button>
+    <button class="mode-tab" onclick="setMode('kr')" id="tab-kr">🇰🇷 한글 발음 모드</button>
+  </div>
+
+  <!-- 상태 바 -->
+  <div class="status-bar">
+    <div class="stat">
+      <div class="stat-val" id="pairs-val">0</div>
+      <div class="stat-label">PAIRS</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <div class="stat-val" id="moves-val">0</div>
+      <div class="stat-label">MOVES</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <div class="stat-val" id="timer-val">0</div>
+      <div class="stat-label">SEC</div>
+    </div>
+  </div>
+
+  <!-- 타이머 바 -->
+  <div class="timer-bar-wrap">
+    <div class="timer-bar" id="timer-bar"></div>
+  </div>
+
+  <!-- 카드 그리드 -->
+  <div class="grid" id="grid"></div>
+
+  <!-- 리셋 버튼 -->
+  <button class="reset-btn" onclick="initGame()">🔄 새 게임</button>
+
+</div>
+
+<!-- 완료 오버레이 -->
+<div class="overlay" id="overlay">
+  <div class="result-box">
+    <span class="result-emoji" id="r-emoji">🎉</span>
+    <div class="result-title">완성!</div>
+    <div class="result-moves" id="r-moves"></div>
+    <div class="snack-box">
+      <span class="s-icon">🍬</span>
+      <div class="s-text">과자 받으러 가세요!</div>
+      <div class="s-sub">선생님께 이 화면을 보여주세요 ✅</div>
+    </div>
+    <button class="play-again-btn" onclick="closeOverlay()">🔄 다시 하기</button>
+  </div>
+</div>
+
+<script>
+// ── 데이터 ───────────────────────────────────────────────────────────────────
+const SUSHI = [
+  { id:'maguro', kr:'참치',    jp:'まぐろ',   ro:'마구로',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjJBebp2jjzuxyNif2GEn6OIbgkfp55Jxl5LQPLBoGdltr8OCk2d6wiy2-pwsyB4BeqDUVEVewk1RHwLr9s0eciDIs68HkT2myDgPXae1l5_Wk-s4wsgG6kOAxiUatB-bRnpzo9g7foSJY/s400/sushi_akami.png' },
+  { id:'salmon', kr:'연어',    jp:'サーモン', ro:'사몬',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgKRKK3eYjQixOcNW2lWwuL3sOHnyFkuzbGVMOY0z6kINYHkACKw_-p-CVhXRxJIR6axoBkNN2qJfoB7x30KFXNj6W3sQyjudFiapFZRuoS_SEUHcJRUnterb5hQpF1g0A-UXBz3L5DFNE/s400/sushi_salmon.png' },
+  { id:'ebi',    kr:'새우',    jp:'えび',     ro:'에비',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgXDOfU1cjZsqV2dnSO7JJ5FKMLOn8IngiZhbwKOlutpb6G1GNy8MKGs42DUgrsEf6eB2Ulrx5VMkFhAzeuW8kZc5h-d1RPaDLnrx4Nv80SNBIwOQcMUaSzbL5wPKwI4eZZmI4GxuZkBqc/s400/sushi_ebi.png' },
+  { id:'tamago', kr:'계란',    jp:'たまご',   ro:'타마고',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgZ1zd_lINPUset0fUwDwkLynI5MhuikoWzdso9NwSOEJAm-6QY68R1xBhLHNkoPR1DWlHuUDlgKUWsF3Ytwuit07pZwAN6H5eLaH7TV7WKFl_5Nupzoe4lak0sxy5XG22lw3VAPeg88Eo/s400/sushi_tamago.png' },
+  { id:'ika',    kr:'오징어',  jp:'いか',     ro:'이카',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg5Jjc6XGITcaxyECr576b6FgBRsOO1OIwQOr5z92XV61BWsP50lDOVrjiCvXNAX-Agr5OeWNIQzvjACXVGkP_u99T_EN4XCMum99GacSm-ma7Mwz8MoXOwnXJiSbhlBO5-i4zjQED7mXU/s400/sushi_ika.png' },
+  { id:'tako',   kr:'문어',    jp:'たこ',     ro:'타코',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhEOB3al6VA1FuVtRogAV3_C4-bNCidMCKJc7rHsSGTIc7ejDu9LqxbwoPjbdPjGJc90wWeHbZ4DpmY-bW6McsTBIOrofZ4GDYOp0wgk5U6ZXPYk5Tfv5_ltrjbPXJVD4UQgZ56DgmNbllS/s400/sushi_tako.png' },
+  { id:'uni',    kr:'성게알',  jp:'うに',     ro:'우니',    img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhpH_pkqxkNGA26TJk8BIUZhDscKa9kvsKf8rkRyYCotwp5D_XqtO-9q9aCn0_khvVnu1W0LAD3xjVB1kPegZjtL3WjseiuL_4uJcp_Dxtdf94c7ZYQf0flKotfNqPWoZJWGo4z-fKymuuf/s400/sushi_uni2.png' },
+  { id:'ikura',  kr:'연어알',  jp:'いくら',   ro:'이쿠라',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhFLiFKr6ZiKugus9v6eArARidy877tSJMex8KV_DjiJ4frWeXRX5azJqtNOVJt-VXEzWgV2twZUll1e78NbqlTKH5sKzhQ201Xupy7gu2wz8yQ_Y2J2lECYJmFHTUMbAX1dYlxa6NFjPQ/s400/sushi_ikura.png' },
+  { id:'inari',  kr:'유부초밥', jp:'いなり',  ro:'이나리',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhAN27zX3P-hoqSiMN6YXoS4G6DVO6H6HHuZjEx_6w5c-yeB3T1ksrX9rPP1uE6OfStg3xLtS-VWQzq_YRh1D_4TL8GGbrrkJJ0oWFc8XtuQCCtNtfW7-v4ZrAbKiYkLqTAWOFmmlkIyDw/s400/inarizushi.png' },
+  { id:'unagi',  kr:'장어',    jp:'うなぎ',   ro:'우나기',  img:'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjt8jmDDCOvNoKwtbVqyM3ltyDmHlQi7o6cU91B-GMkRfNWl_prB9rqyroHxSe-xta2wg-IAeOzH21BPNDOAb45w6_5dbtTnVvoeri-Gw7vK-wlMPhpSi_3KyKW5JqN55ESgkUCXbjltT-j/s300/sushi_unagi.png' },
+];
+
+// ── 상태 ─────────────────────────────────────────────────────────────────────
+let mode = 'jp';           // 'jp' | 'kr'
+let cards = [];            // DOM 카드 배열
+let flipped = [];          // 현재 뒤집힌 카드 [el, el]
+let matched = 0;
+let moves = 0;
+let seconds = 0;
+let timerInt = null;
+let locked = false;
+const PAIRS = 8;           // 한 판에 8쌍 (16장)
+const TIME_LIMIT = 120;    // 초
+
+// ── 유틸 ─────────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const shuffle = arr => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+// ── 모드 전환 ────────────────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m;
+  $('tab-jp').classList.toggle('active', m === 'jp');
+  $('tab-kr').classList.toggle('active', m === 'kr');
+  initGame();
+}
+
+// ── 게임 초기화 ───────────────────────────────────────────────────────────────
+function initGame() {
+  clearInterval(timerInt);
+  flipped = []; matched = 0; moves = 0; seconds = 0; locked = false;
+
+  updateStats();
+  $('timer-bar').style.width = '100%';
+  $('timer-bar').classList.remove('warn');
+  $('overlay').classList.remove('show');
+
+  // 8쌍 선택
+  const pool = shuffle(SUSHI).slice(0, PAIRS);
+
+  // 이미지 카드 + 텍스트 카드 쌍 생성
+  const cardDefs = [];
+  pool.forEach(s => {
+    cardDefs.push({ sushi: s, type: 'img' });
+    cardDefs.push({ sushi: s, type: 'txt' });
+  });
+
+  const shuffled = shuffle(cardDefs);
+  const grid = $('grid');
+  grid.innerHTML = '';
+
+  shuffled.forEach(def => {
+    const card = makeCard(def);
+    grid.appendChild(card);
+  });
+
+  // 타이머 시작
+  timerInt = setInterval(() => {
+    seconds++;
+    $('timer-val').textContent = seconds;
+    // 타이머 바 (시각적 참고용, 제한 없음)
+    const pct = Math.max(0, 100 - (seconds / TIME_LIMIT * 100));
+    $('timer-bar').style.width = pct + '%';
+    $('timer-bar').classList.toggle('warn', pct < 30);
+  }, 1000);
+}
+
+// ── 카드 DOM 생성 ─────────────────────────────────────────────────────────────
+function makeCard({ sushi, type }) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.id = sushi.id;
+  card.dataset.type = type;
+
+  // 앞면 (뒤집기 전 — 빨간 패턴)
+  const back = document.createElement('div');
+  back.className = 'card-face card-back';
+  back.innerHTML = `
+    <div class="card-back-pattern"></div>
+    <div class="card-back-icon">🍣</div>
+    <div class="card-back-text">SUSHI</div>
+  `;
+
+  // 뒷면
+  let front;
+  if (type === 'img') {
+    front = document.createElement('div');
+    front.className = 'card-face card-front-img';
+    front.innerHTML = `
+      <img src="${sushi.img}" alt="${sushi.kr}" loading="lazy">
+      <div class="card-kr-label">${sushi.kr}</div>
+    `;
+  } else {
+    front = document.createElement('div');
+    front.className = 'card-face card-front-txt';
+    const label = mode === 'jp' ? sushi.jp : sushi.ro;
+    const sub   = mode === 'jp' ? sushi.ro : sushi.jp;
+    front.innerHTML = `
+      <div class="card-jp">${label}</div>
+      <div class="card-ro">${sub}</div>
+    `;
+  }
+
+  const inner = document.createElement('div');
+  inner.className = 'card-inner';
+  inner.appendChild(back);
+  inner.appendChild(front);
+  card.appendChild(inner);
+
+  card.addEventListener('click', () => onCardClick(card));
+  return card;
+}
+
+// ── 카드 클릭 ─────────────────────────────────────────────────────────────────
+function onCardClick(card) {
+  if (locked) return;
+  if (card.classList.contains('flipped')) return;
+  if (card.classList.contains('matched')) return;
+  if (flipped.length >= 2) return;
+
+  card.classList.add('flipped');
+  flipped.push(card);
+
+  if (flipped.length === 2) {
+    moves++;
+    updateStats();
+    checkMatch();
+  }
+}
+
+// ── 매칭 체크 ────────────────────────────────────────────────────────────────
+function checkMatch() {
+  const [a, b] = flipped;
+  const sameId   = a.dataset.id === b.dataset.id;
+  const diffType = a.dataset.type !== b.dataset.type;
+
+  if (sameId && diffType) {
+    // 성공
+    setTimeout(() => {
+      a.classList.add('matched');
+      b.classList.add('matched');
+      a.classList.remove('flipped');
+      b.classList.remove('flipped');
+      flipped = [];
+      matched++;
+      updateStats();
+      if (matched >= PAIRS) finishGame();
+    }, 500);
+  } else {
+    // 실패
+    locked = true;
+    a.classList.add('wrong');
+    b.classList.add('wrong');
+    setTimeout(() => {
+      a.classList.remove('flipped', 'wrong');
+      b.classList.remove('flipped', 'wrong');
+      flipped = [];
+      locked = false;
+    }, 900);
+  }
+}
+
+// ── 통계 업데이트 ────────────────────────────────────────────────────────────
+function updateStats() {
+  $('pairs-val').textContent = matched;
+  $('moves-val').textContent = moves;
+  $('timer-val').textContent = seconds;
+}
+
+// ── 완료 ─────────────────────────────────────────────────────────────────────
+function finishGame() {
+  clearInterval(timerInt);
+  const efficiency = moves > 0 ? Math.round((PAIRS / moves) * 100) : 100;
+  let emoji;
+  if (efficiency >= 80)      emoji = '🏆';
+  else if (efficiency >= 60) emoji = '🎉';
+  else if (efficiency >= 40) emoji = '😊';
+  else                       emoji = '😅';
+
+  $('r-emoji').textContent = emoji;
+  $('r-moves').textContent = `${seconds}초 · ${moves}번 시도 · 정확도 ${efficiency}%`;
+
+  setTimeout(() => $('overlay').classList.add('show'), 400);
+}
+
+function closeOverlay() {
+  $('overlay').classList.remove('show');
+  initGame();
+}
+
+// ── 시작 ─────────────────────────────────────────────────────────────────────
+initGame();
+</script>
+</body>
+</html>
